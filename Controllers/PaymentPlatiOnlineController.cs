@@ -115,9 +115,16 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
                 RelayMethod = await platiOnlinePaymentSettings.RelayMethod.ToSelectListAsync(),
                 TestMode = platiOnlinePaymentSettings.TestMode,
                 SSL = platiOnlinePaymentSettings.SSL,
-                ActiveStoreScopeConfiguration = storeScope
+                ActiveStoreScopeConfiguration = storeScope,
+                TransactModeId = Convert.ToInt32(platiOnlinePaymentSettings.TransactMode),
+                TransactModeValues = await platiOnlinePaymentSettings.TransactMode.ToSelectListAsync(),
+                Log_Path = platiOnlinePaymentSettings.LogPath,
+                PayLinkDayOfValability = platiOnlinePaymentSettings.PayLinkDayOfValability,
+                PayLinkStamp2Expire = platiOnlinePaymentSettings.PayLinkStamp2Expire
+
             };
 
+            
             if (storeScope > 0)
             {
                 model.Merchant_Id_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.Merchant_Id, storeScope);
@@ -133,8 +140,12 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
                 model.RelayMethodId_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.RelayMethod, storeScope);
                 model.TestMode_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.TestMode, storeScope);
                 model.SSL_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.SSL, storeScope);
+                model.TransactModeId_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.TransactMode, storeScope);
+                model.Log_Path_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.LogPath, storeScope);
+                model.PayLinkDayOfValability_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.PayLinkDayOfValability, storeScope);
+                model.PayLinkStamp2Expire_OverrideForStore = await _settingService.SettingExistsAsync(platiOnlinePaymentSettings, x => x.PayLinkStamp2Expire, storeScope);
             }
-          
+
 
             return View("~/Plugins/Payments.PlatiOnline/Views/Configure.cshtml", model);
         }
@@ -169,10 +180,12 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             platiOnlinePaymentSettings.IvItsn = model.IvItsn;
             platiOnlinePaymentSettings.TestMode = model.TestMode;
             platiOnlinePaymentSettings.SSL = model.SSL;
+            platiOnlinePaymentSettings.TransactMode = (TransactMode)model.TransactModeId;
+            platiOnlinePaymentSettings.LogPath = model.Log_Path;
+            platiOnlinePaymentSettings.PayLinkDayOfValability = model.PayLinkDayOfValability;
+            platiOnlinePaymentSettings.PayLinkStamp2Expire = model.PayLinkStamp2Expire;
 
-            /* We do not clear cache after each setting update.
-             * This behavior can increase performance because cached settings will not be cleared 
-             * and loaded from database after each update */
+
             await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.Merchant_Id, model.Merchant_Id_OverrideForStore, storeScope, false);
             await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.Public_Key, model.Public_Key_OverrideForStore, storeScope, false);
             await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.Private_Key, model.Private_Key_OverrideForStore, storeScope, false);
@@ -186,11 +199,26 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.RelayMethod, model.RelayMethodId_OverrideForStore, storeScope, false);
             await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.TestMode, model.TestMode_OverrideForStore, storeScope, false);
             await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.SSL, model.SSL_OverrideForStore, storeScope, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.TransactMode, model.TransactModeId_OverrideForStore, storeScope, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.LogPath, model.Log_Path_OverrideForStore, storeScope, false);
 
             //now clear settings cache
             await _settingService.ClearCacheAsync();
 
-            _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Admin.Plugins.Saved"));
+            if (model.PayLinkDayOfValability != "" && Convert.ToInt32(model.PayLinkDayOfValability) > 0 && model.PayLinkStamp2Expire != "" && Convert.ToDateTime(model.PayLinkStamp2Expire) > DateTime.Now)
+            {
+                _notificationService.ErrorNotification(await _localizationService.GetResourceAsync("Plugins.Payments.PlatiOnline.Fields.OnlyOneSelected"));
+            }
+            else
+            {
+                /* We do not clear cache after each setting update.
+                * This behavior can increase performance because cached settings will not be cleared 
+                * and loaded from database after each update */
+                await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.PayLinkDayOfValability, model.PayLinkDayOfValability_OverrideForStore, storeScope, false);
+                await _settingService.SaveSettingOverridablePerStoreAsync(platiOnlinePaymentSettings, x => x.PayLinkStamp2Expire, model.PayLinkStamp2Expire_OverrideForStore, storeScope, false);
+
+                _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Admin.Plugins.Saved"));
+            }
 
             return await Configure();
         }
@@ -221,7 +249,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             orderNote.CreatedOnUtc = DateTime.Now;
             orderNote.DisplayToCustomer = false;
 
-            Order order = new Order();
+            Core.Domain.Orders.Order order = new Core.Domain.Orders.Order();
             String note = "";
 
             if (error == null)
@@ -316,10 +344,10 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
                             await _orderService.UpdateOrderAsync(order);
 
                             //model
-                            model.order_number = response0.f_order_number;
-                            model.order_status = Enum.GetName(typeof(OrderStatus), order.OrderStatusId);
-                            model.payment_status = Enum.GetName(typeof(PaymentStatus), order.PaymentStatusId);
-                            model.response_reason_text = response0.x_response_reason_text;
+                            model.Order_number = response0.f_order_number;
+                            model.Order_status = Enum.GetName(typeof(OrderStatus), order.OrderStatusId);
+                            model.Payment_status = Enum.GetName(typeof(PaymentStatus), order.PaymentStatusId);
+                            model.Response_reason_text = response0.x_response_reason_text;
 
                             return View("Plugins/Payments.PlatiOnline/Views/CheckoutCompleted.cshtml", model);
 
@@ -507,10 +535,10 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
                             }
 
                             //model
-                            model.order_number = response2.f_order_number;
-                            model.order_status = Enum.GetName(typeof(OrderStatus), order.OrderStatusId);
-                            model.payment_status = Enum.GetName(typeof(PaymentStatus), order.PaymentStatusId);
-                            model.response_reason_text = response2.x_response_reason_text;
+                            model.Order_number = response2.f_order_number;
+                            model.Order_status = Enum.GetName(typeof(OrderStatus), order.OrderStatusId);
+                            model.Payment_status = Enum.GetName(typeof(PaymentStatus), order.PaymentStatusId);
+                            model.Response_reason_text = response2.x_response_reason_text;
                             
                             return View("Plugins/Payments.PlatiOnline/Views/CheckoutCompleted.cshtml", model);
 
@@ -519,10 +547,10 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
                 }
                 catch (Exception e)
                 {
-                    model.order_number = orderId.ToString();
-                    model.order_status = OrderStatus.Pending.ToString();
-                    model.payment_status = PaymentStatus.Error.ToString();
-                    model.response_reason_text = "An error was encountered in PlatiOnline authorization process: " + HttpUtility.UrlDecode(e.Message);
+                    model.Order_number = orderId.ToString();
+                    model.Order_status = OrderStatus.Pending.ToString();
+                    model.Payment_status = PaymentStatus.Error.ToString();
+                    model.Response_reason_text = "An error was encountered in PlatiOnline authorization process: " + HttpUtility.UrlDecode(e.Message);
                 }
             }
             else
@@ -542,10 +570,10 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
                     CreatedOnUtc = DateTime.UtcNow
                 });
 
-                model.order_number = orderId.ToString();
-                model.order_status = Enum.GetName(typeof(OrderStatus), order.OrderStatusId);
-                model.payment_status = Enum.GetName(typeof(PaymentStatus), order.PaymentStatusId);
-                model.response_reason_text = error;
+                model.Order_number = orderId.ToString();
+                model.Order_status = Enum.GetName(typeof(OrderStatus), order.OrderStatusId);
+                model.Payment_status = Enum.GetName(typeof(PaymentStatus), order.PaymentStatusId);
+                model.Response_reason_text = error;
             }
 
             return View("~/Plugins/Payments.PlatiOnline/Views/CheckoutCompleted.cshtml", model);
@@ -564,8 +592,8 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
             po.merchant_privateKey = _platiOnlinePaymentSettings.Private_Key;
             po.merchant_publicKey = _platiOnlinePaymentSettings.Public_Key;
             po.merchant_relay_response_f_relay_response_url = _webHelper.GetStoreLocation(_platiOnlinePaymentSettings.SSL) + _platiOnlinePaymentSettings.Relay_Response_URL;
-            //po.log_path = @"";
-
+            po.log_path = _platiOnlinePaymentSettings.LogPath;
+            
             #endregion
 
             #region get_itsn_request
@@ -587,6 +615,7 @@ namespace Nop.Plugin.Payments.PayPalStandard.Controllers
 
                 po.Query.f_order_number = po_itsn.f_order_number;
                 po.Query.x_trans_id = po_itsn.x_trans_id;
+                po.Query.f_website = _webHelper.GetStoreLocation(_platiOnlinePaymentSettings.SSL).ToLower().Replace("www.", "").Replace("https://", "").Replace("http://", "");
 
                 #endregion
 

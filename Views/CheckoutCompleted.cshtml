@@ -12,7 +12,7 @@
 }
 
 <div class="page checkout-page order-completed-page">
-	@switch (Model.payment_status)
+	@switch (Model.Payment_status)
 	{
 		case "Authorized":
 			<div class="page-title">
@@ -29,10 +29,10 @@
 							<h3>@T("Plugins.Payments.PlatiOnline.Fields.YourTransactionIs"): @T("Plugins.Payments.PlatiOnline.Fields.Authorized")</h3>
 						</div>
 						<div class="order-number">
-							<strong>@T("Checkout.OrderNumber"): @Model.order_number</strong>
+							<strong>@T("Checkout.OrderNumber"): @Model.Order_number</strong>
 						</div>
 						<div class="details-link">
-                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.order_number })">@T("Checkout.PlacedOrderDetails")</a>
+                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.Order_number })">@T("Checkout.PlacedOrderDetails")</a>
 						</div>
 					</div>
                     <div class="buttons">
@@ -59,10 +59,10 @@
 						</div>
 						<br />
 						<div class="order-number">
-							<strong>@T("Checkout.OrderNumber"): @Model.order_number</strong>
+							<strong>@T("Checkout.OrderNumber"): @Model.Order_number</strong>
 						</div>
 						<div class="details-link">
-                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.order_number })">@T("Checkout.PlacedOrderDetails")</a>
+                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.Order_number })">@T("Checkout.PlacedOrderDetails")</a>
 						</div>
 					</div>
 					<div class="buttons">
@@ -91,10 +91,10 @@
 						</div>
 						<br />
 						<div class="order-number">
-							<strong>@T("Checkout.OrderNumber"): @Model.order_number</strong>
+							<strong>@T("Checkout.OrderNumber"): @Model.Order_number</strong>
 						</div>
                         <div class="details-link">
-                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.order_number })">@T("Checkout.PlacedOrderDetails")</a>
+                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.Order_number })">@T("Checkout.PlacedOrderDetails")</a>
                         </div>
 					</div>
                     <div class="buttons">
@@ -115,22 +115,22 @@
 						<strong>@T("Plugins.Payments.PlatiOnline.Fields.TransactionError")</strong>
 					</div>
 					<div class="details">
-						@if (Convert.ToInt32(Model.order_number) > 0)
+						@if (Convert.ToInt32(Model.Order_number) > 0)
 						{
 						<div class="order-number">
 							<h3>@T("Plugins.Payments.PlatiOnline.Fields.TransactionErrorInfo") </h3>
 						</div>
 						<div class="order-number">
-							<strong>@T("Checkout.OrderNumber"): @Model.order_number</strong>
+							<strong>@T("Checkout.OrderNumber"): @Model.Order_number</strong>
 						</div>
                         <div class="details-link">
-                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.order_number })">@T("Checkout.PlacedOrderDetails")</a>
+                            <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.Order_number })">@T("Checkout.PlacedOrderDetails")</a>
                         </div>
                         }
                         else
                         {
 						<div class="order-number">
-							<strong>@Model.response_reason_text </strong>
+							<strong>@Model.Response_reason_text </strong>
 						</div>
 						}
 					</div>

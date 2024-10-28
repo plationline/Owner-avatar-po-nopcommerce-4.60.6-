@@ -9,7 +9,7 @@
 <form asp-controller="PaymentPlatiOnline" asp-action="Configure" method="post">
     <div class="cards-group">
         <div class="card card-default">
-            <div class="card-body">                
+            <div class="card-body">
                 <p>
                     @T("Plugins.Payments.PlatiOnline.Fields.PoInfo")
                     <br />
@@ -30,14 +30,14 @@
                         <nop-label asp-for="Public_Key" />
                     </div>
                     <div class="col-md-9">
-                        <nop-textarea asp-for="Public_Key" asp-required="true"/>
+                        <nop-textarea asp-for="Public_Key" asp-required="true" />
                         <span asp-validation-for="Public_Key"></span>
                     </div>
                 </div>
                 <div class="form-group row">
                     <div class="col-md-3">
                         <nop-override-store-checkbox asp-for="Private_Key_OverrideForStore" asp-input="Private_Key" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                        <nop-label asp-for="Private_Key"  />
+                        <nop-label asp-for="Private_Key" />
                     </div>
                     <div class="col-md-9">
                         <nop-textarea asp-for="Private_Key" asp-required="true" />
@@ -50,17 +50,17 @@
                         <nop-label asp-for="IvAuth" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="IvAuth" asp-required="true"/>
+                        <nop-editor asp-for="IvAuth" asp-required="true" />
                         <span asp-validation-for="IvAuth"></span>
                     </div>
                 </div>
                 <div class="form-group row">
                     <div class="col-md-3">
                         <nop-override-store-checkbox asp-for="IvItsn_OverrideForStore" asp-input="IvItsn" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                        <nop-label asp-for="IvItsn"/>
+                        <nop-label asp-for="IvItsn" />
                     </div>
                     <div class="col-md-9">
-                        <nop-editor asp-for="IvItsn" asp-required="true"/>
+                        <nop-editor asp-for="IvItsn" asp-required="true" />
                         <span asp-validation-for="IvItsn"></span>
                     </div>
                 </div>
@@ -97,11 +97,21 @@
                 <div class="form-group row">
                     <div class="col-md-3">
                         <nop-override-store-checkbox asp-for="OtherCurrencyId_OverrideForStore" asp-input="OtherCurrencyId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                        <nop-label asp-for="OtherCurrencyId" />
+                        <nop-label asp-for="OtherCurrency" />
                     </div>
                     <div class="col-md-9">
                         <nop-select asp-for="OtherCurrencyId" asp-items="Model.OtherCurrency" />
                         <span asp-validation-for="OtherCurrencyId"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="TransactModeId_OverrideForStore" asp-input="TransactModeId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="TransactModeValues" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-select asp-for="TransactModeId" asp-items="Model.TransactModeValues" />
+                        <span asp-validation-for="TransactModeId"></span>
                     </div>
                 </div>
                 <div class="form-group row">
@@ -117,11 +127,21 @@
                 <div class="form-group row">
                     <div class="col-md-3">
                         <nop-override-store-checkbox asp-for="RelayMethodId_OverrideForStore" asp-input="RelayMethodId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                        <nop-label asp-for="RelayMethodId" />
+                        <nop-label asp-for="RelayMethod" />
                     </div>
                     <div class="col-md-9">
                         <nop-select asp-for="RelayMethodId" asp-items="Model.RelayMethod" />
                         <span asp-validation-for="RelayMethodId"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="PayLinkDayOfValability_OverrideForStore" asp-input="PayLinkDayOfValability" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="PayLinkDayOfValability" />
+                    </div>
+                    <div class="col-md-3">
+                        <nop-editor asp-for="PayLinkDayOfValability" />
+                        <span asp-validation-for="PayLinkDayOfValability"></span>
                     </div>
                 </div>
                 <div class="form-group row">
@@ -142,6 +162,16 @@
                     <div class="col-md-9">
                         <nop-editor asp-for="SSL" />
                         <span asp-validation-for="SSL"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Log_Path_OverrideForStore" asp-input="Log_Path" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Log_Path" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="Log_Path" />
+                        <span asp-validation-for="Log_Path"></span>
                     </div>
                 </div>
                 <div class="form-group row">

@@ -2,7 +2,7 @@
   "Group": "Payment methods",
   "FriendlyName": "Plati Online",
   "SystemName": "Payments.PlatiOnline",
-  "Version": "7",
+  "Version": "8",
   "SupportedVersions": [ "4.60" ],
   "Author": "C Solution",
   "DisplayOrder": 1,

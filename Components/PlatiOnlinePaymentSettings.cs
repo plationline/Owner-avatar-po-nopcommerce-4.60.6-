@@ -1,4 +1,5 @@
-﻿using Nop.Core.Configuration;
+﻿using System;
+using Nop.Core.Configuration;
 
 namespace Nop.Plugin.Payments.PlatiOnline
 {
@@ -18,5 +19,10 @@ namespace Nop.Plugin.Payments.PlatiOnline
         public decimal AdditionalFee { get; set; }
         public bool TestMode { get; set; }
         public bool SSL { get; set; }
+        public TransactMode TransactMode { get; set; }
+        public string LogPath {get; set; }
+
+        public string PayLinkDayOfValability {get;set;}
+        public string PayLinkStamp2Expire {get;set;}
     }
 }

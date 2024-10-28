@@ -4,13 +4,17 @@ using System.Globalization;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.CodeAnalysis;
 using Nop.Core;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
+using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Payments;
 using Nop.Services.Catalog;
 using Nop.Services.Common;
 using Nop.Services.Configuration;
@@ -140,7 +144,32 @@ namespace Nop.Plugin.Payments.PlatiOnline
         /// </returns>
         public Task<ProcessPaymentResult> ProcessPaymentAsync(ProcessPaymentRequest processPaymentRequest)
         {
-            return Task.FromResult(new ProcessPaymentResult());
+            var result = new ProcessPaymentResult
+            {
+                AllowStoringCreditCardNumber = true
+            };
+            switch (_platiOnlinePaymentSettings.TransactMode)
+            {
+                case TransactMode.Pending:
+                    result.NewPaymentStatus = PaymentStatus.Pending;
+                    break;
+                case TransactMode.Authorize:
+                    result.NewPaymentStatus = PaymentStatus.Authorized;
+                    break;
+                case TransactMode.AuthorizeAndCapture:
+                    result.NewPaymentStatus = PaymentStatus.Paid;
+                    break;
+                case TransactMode.Unpaid:
+                    result.NewPaymentStatus = PaymentStatus.Unpaid;
+                    break;
+                default:
+                    result.AddError("Not supported transaction type");
+                    break;
+            }
+
+            return Task.FromResult(result);
+
+            //return Task.FromResult(new ProcessPaymentResult());
         }
 
         /// <summary>
@@ -185,9 +214,9 @@ namespace Nop.Plugin.Payments.PlatiOnline
             po.merchant_publicKey = _platiOnlinePaymentSettings.Public_Key;
             po.merchant_relay_response_f_relay_response_url = _webHelper.GetStoreLocation(_platiOnlinePaymentSettings.SSL) + _platiOnlinePaymentSettings.Relay_Response_URL;
             po.merchant_relay_response_f_relay_method = _platiOnlinePaymentSettings.RelayMethod.ToString();
-            po.log_path = @"C:";
+            po.log_path = _platiOnlinePaymentSettings.LogPath;
 
-            #endregion
+            #endregion     
 
             #region set_authorization_fields
 
@@ -197,7 +226,18 @@ namespace Nop.Plugin.Payments.PlatiOnline
             po.Authorization.f_order_number = ObjectIsNullOrEmpty(postProcessPaymentRequest.Order.Id);
             po.Authorization.f_test_request = Convert.ToInt16(_platiOnlinePaymentSettings.TestMode).ToString();
             po.Authorization.f_order_string = "Plata comenzii cu id " + po.Authorization.f_order_number + " pe site-ul " + _webHelper.GetStoreLocation(_platiOnlinePaymentSettings.SSL);
-            po.Authorization.f_website = _webHelper.GetStoreLocation(_platiOnlinePaymentSettings.SSL);
+            po.Authorization.f_website = _webHelper.GetStoreLocation(_platiOnlinePaymentSettings.SSL).ToLower().Replace("www.","").Replace("https://","").Replace("http://","");
+
+            #region PayLink
+
+            if (_platiOnlinePaymentSettings.PayLinkDayOfValability != null && _platiOnlinePaymentSettings.PayLinkDayOfValability != "")
+            {
+                po.Authorization.paylink.daysofvalability = Convert.ToInt32(_platiOnlinePaymentSettings.PayLinkDayOfValability);
+                po.Authorization.paylink.email2client = "0";
+                po.Authorization.paylink.sms2client = "0";
+            }
+            
+            #endregion
 
             #region card holder info
 
@@ -450,6 +490,7 @@ namespace Nop.Plugin.Payments.PlatiOnline
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.IvAuth.Hint", "Specify merchant IvAuth.");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.IvItsn", "Merchant IvItsn");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.IvItsn.Hint", "Specify merchant IvItsn.");
+
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.TransactMode", "After checkout mark payment as");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.TransactMode.Hint", "Specify transaction mode.");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RON", "Accepted RON ");
@@ -458,22 +499,31 @@ namespace Nop.Plugin.Payments.PlatiOnline
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.EUR.Hint", "Specify accepted EUR currency.");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.USD", "Accepted USD ");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.USD.Hint", "Specify accepted USD currency.");
+
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.OtherCurrency", "Other currency ");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.OtherCurrency.Hint", "Specify the currency to replace the other unsupported currencies.");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Log_Path", "Log");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Log_Path.Hint", "Specify the path where the log is been writing (only for debug).");
+
+
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Relay_Response_URL", "Relay response URL");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Relay_Response_URL.Hint", "Specify the URL address to which the PO server will send the response for the transactions made by your clients");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RelayMethod", "Relay method ");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RelayMethod.Hint", "Specify the method.");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.TestMode", "Test mode");
-            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.TestMode.Hint", "Specify test mode.");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.TestMode.Hint", "Specify test mode.");            
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.SSL", "Use SSL");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.SSL.Hint", "Specify use SSL.");
 
-            //used in PaymentInfo.cshtml
-            await  _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RedirectionTip", "You will be redirected to PlatiOnline site to complete the payment.", "en-US");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PayLinkDayOfValability", "Payment link day of valiability");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PayLinkDayOfValability.Hint", "Specify payment link day of valiability (value between 1 and 31).");
+
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PayLinkStamp2Expire", "Payment link stamp to expire");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PayLinkStamp2Expire.Hint", "Specify payment link stamp to expire.");
+                                                                                                                           
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RedirectionTip", "You will be redirected to PlatiOnline site to complete the payment.", "en-US");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RedirectionTip", "Veti fi redirectionat catre site-ul PlatiOnline pentru a finaliza plata.", "ro-RO");
 
-            //used in CheckoutCompleted.cshtml
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.WeAreSorry", "We are sorry", "en-US");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.WeAreSorry", "Ne pare rau", "ro-RO");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.YourTransactionIs", "Your transaction is", "en-US");
@@ -498,9 +548,35 @@ namespace Nop.Plugin.Payments.PlatiOnline
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.OnHold", "In asteptare", "ro-RO");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Declined", "Declined", "en-US");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Declined", "Refuzata", "ro-RO");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Unpaid", "Unpaid", "en-US");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Unpaid", "Neplatita", "ro-RO");
 
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PoInfo", "You must log into <a href='https://merchants.plationline.ro/' target='_blank'><b>PlatiOnline</b></a> account, <b>Settings</b> section to get the info you need for the fields below.", "en-US");
             await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PoInfo", "Trebuie sa va logati in contul <a href='https://merchants.plationline.ro/' target='_blank'><b>PlatiOnline</b>, </a>sectiunea Setari pentru a completa datele de mai jos.", "ro-RO");
+
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.OnlyOneSelected", "You must fill only Pay link days of valability or Pay link stamp to expire", "en-US");
+            await _localizationService.AddOrUpdateLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.OnlyOneSelected", "Trebuie sa compeltati doar unul din capurile PayLinkDaysOfValability sau PayLinkStamp2Expire", "ro-RO");
+
+
+            /*await _localizationService.AddOrUpdateLocaleResourceAsync(
+               new Dictionary<string, string>
+               {
+                   ["Plugins.Payments.PlatiOnline.Fields.TransactMode"] = "Dupa finalizare comanda marcheaza plata ca",
+                   ["Plugins.Payments.PlatiOnline.Fields.TransactMode.Hint"] = "Sepcifica modul tranzactiei",
+
+                   ["Plugins.Payments.PlatiOnline.Fields.RON"] = "Accepta RON",
+                   ["Plugins.Payments.PlatiOnline.Fields.RON.Hint"] = "Specifica moneda aceptata RON.",
+                   ["Plugins.Payments.PlatiOnline.Fields.EUR"] = "Accepta EUR",
+                   ["Plugins.Payments.PlatiOnline.Fields.EUR.Hint"] = "Specifica moneda aceptata EUR.",
+                   ["Plugins.Payments.PlatiOnline.Fields.USD"] = "Accepta USD",
+                   ["Plugins.Payments.PlatiOnline.Fields.USD.Hint"] = "Specifica moneda aceptata USD.",
+                   ["Plugins.Payments.PlatiOnline.Fields.OtherCurrency"] = "Convertest alte monede in",
+                   ["Plugins.Payments.PlatiOnline.Fields.OtherCurrency.Hint"] = "Specifica moneda in care se schimba monedele neaceptate.",
+                   ["Plugins.Payments.PlatiOnline.Fields.Log_Path"] = "Log",
+                   ["Plugins.Payments.PlatiOnline.Fields.Log_Path.Hint"] = "Specifica calea unde urmeaza sa se scrie Log-ul (doar pentru debug).",
+
+               }
+               , 2); */
 
             await base.InstallAsync();
         }
@@ -514,7 +590,7 @@ namespace Nop.Plugin.Payments.PlatiOnline
             await _settingService.DeleteSettingAsync<PlatiOnlinePaymentSettings>();
 
             //locales
-            await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.MerchantId");
+            /*await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.MerchantId");
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.MerchantId.Hint");
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PublicKey");
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PublicKey.Hint");
@@ -543,6 +619,8 @@ namespace Nop.Plugin.Payments.PlatiOnline
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.SSL");
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.SSL.Hint");
 
+            await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.TransactMode");
+            await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.TransactMode.Hint");
             //used in PaymentInfo.cshtml
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RedirectionTip");
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.RedirectionTip");
@@ -559,8 +637,11 @@ namespace Nop.Plugin.Payments.PlatiOnline
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Authorized");
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.OnHold");
             await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Declined");
+            await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.Unpaid");
 
-            await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PoInfo");
+            await _localizationService.DeleteLocaleResourceAsync("Plugins.Payments.PlatiOnline.Fields.PoInfo"); */
+
+            await _localizationService.DeleteLocaleResourcesAsync("Plugins.Payments.PlatiOnline");
 
             await base.UninstallAsync();
         }

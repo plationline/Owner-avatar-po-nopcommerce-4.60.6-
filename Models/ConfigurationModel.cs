@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework.Mvc.ModelBinding;
 using Nop.Web.Framework.Models;
+using System.ComponentModel.DataAnnotations;
+using System;
 
 namespace Nop.Plugin.Payments.PlatiOnline.Models
 {
@@ -61,5 +63,24 @@ namespace Nop.Plugin.Payments.PlatiOnline.Models
         [NopResourceDisplayName("Plugins.Payments.PlatiOnline.Fields.SSL")]
         public bool SSL { get; set; }
         public bool SSL_OverrideForStore { get; set; }
+
+        public int TransactModeId { get; set; }        
+
+        [NopResourceDisplayName("Plugins.Payments.PlatiOnline.Fields.TransactMode")]
+        public SelectList TransactModeValues { get; set; }
+        public bool TransactModeId_OverrideForStore { get; set; }
+
+        [NopResourceDisplayName("Plugins.Payments.PlatiOnline.Fields.Log_Path")]
+        public string Log_Path { get; set; }
+        public bool Log_Path_OverrideForStore { get; set; }
+
+        [NopResourceDisplayName("Plugins.Payments.PlatiOnline.Fields.PayLinkDayOfValability")]
+        //[Range(1, 31, ErrorMessage = "Value muste be between 1 and 31.")]
+        public string PayLinkDayOfValability { get; set; }
+        public bool PayLinkDayOfValability_OverrideForStore { get; set; }
+
+        [NopResourceDisplayName("Plugins.Payments.PlatiOnline.Fields.PayLinkStamp2Expire")]
+        public string PayLinkStamp2Expire { get; set; }
+        public bool PayLinkStamp2Expire_OverrideForStore { get; set; }
     }
 }

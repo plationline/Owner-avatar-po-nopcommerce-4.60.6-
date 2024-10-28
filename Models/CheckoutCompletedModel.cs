@@ -4,9 +4,9 @@ namespace Nop.Plugin.Payments.PlatiOnline.Models
 {
 	public record CheckoutCompletedModel : BaseNopModel
 	{
-		public string response_reason_text { get; set; }
-		public string order_number { get; set; }
-		public string order_status { get; set; }
-		public string payment_status { get; set; }
+		public string Response_reason_text { get; set; }
+		public string Order_number { get; set; }
+		public string Order_status { get; set; }
+		public string Payment_status { get; set; }
 	}
 }
